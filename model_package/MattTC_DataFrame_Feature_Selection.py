@@ -65,7 +65,7 @@ def SVR_poly_Sc_features_selection(df, feature_importance_list, y_label='BS_mg_d
     )
 
     # 假设您已经定义了cat_linear_processor和num_linear_processor
-    cat_linear_processor = OrdinalEncoder() # handle_unknown="use_encoded_value", unknown_value=-1
+    cat_linear_processor = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1) # handle_unknown="use_encoded_value", unknown_value=-1
     num_linear_processor = StandardScaler()
 
     # 列变换器，将cat_linear_processor应用于整数列，将num_linear_processor应用于浮点数列
@@ -74,8 +74,8 @@ def SVR_poly_Sc_features_selection(df, feature_importance_list, y_label='BS_mg_d
         (num_linear_processor, float_columns)  # float_columns是包含浮点数列名称的列表
     )
 
-    X_train_transformed = linear_preprocessor.fit_transform(X_train)
-    X_test_transformed = linear_preprocessor.transform(X_test)
+    # X_train_transformed = linear_preprocessor.fit_transform(X_train)
+    # X_test_transformed = linear_preprocessor.transform(X_test)
     # X_train_transformed.shape, X_test_transformed.shape 
 
     degree_values = list(range(1, 15))  # 尝试1到5次多项式

@@ -2,7 +2,7 @@
 # !pip install protobuf==4.20.0
 import pandas as pd
 import numpy as np
-import os, joblib
+import os, joblib, pickle
 from sklearn.preprocessing import StandardScaler, KBinsDiscretizer, MinMaxScaler
 from optbinning import ContinuousOptimalPWBinning
 from sklearn.cluster import KMeans
@@ -17,10 +17,16 @@ def csv_file_preprocess(filename):
     df.info(memory_usage='deep')
     print(df.info())
     print(df.shape)
-    df[['stability', 'HT_symptom', 'userstatus']] = df[['stability', 'HT_symptom', 'userstatus']].fillna(-1)
+
+    columns_to_fill = ['stability', 'HT_symptom', 'userstatus']
+    # 檢查這些列是否存在於 DataFrame 中
+    existing_columns = [col for col in columns_to_fill if col in df.columns]
+    # 如果存在，則對這些列進行填充操作
+    if existing_columns:
+        df[existing_columns] = df[existing_columns].fillna(-1)
 
     columns_to_remove = [
-        'ecg_filename', # 'mealstatus', # 'realBS',
+        'ecg_filename', # 'realBS', 'mealstatus', 
         'year','month','day','hour','minute','second','time_date',
         'sample','id','User_name','file_name','lp4','id_num','cha_2',
         'cha_url', 'Probable_Lead', 'HRV_SDANN1','HRV_SDNNI1','HRV_SDANN2','HRV_SDNNI2','HRV_SDANN5',
@@ -30,23 +36,27 @@ def csv_file_preprocess(filename):
         'Sample_Entropy', 'User Name', 'file name', 'cha', 
         'realSYS', 'realDIA', 'realHR',	'realHR2', 'realSYS2', 'realDIA2', 'realBS2',
         'neurokit', 'biosppy', 'pantompkins1985', 'hamilton2002', 'elgendi2010', 
-        # 'AI_SYS', 'AI_DIA', 'AI_BS', 'AI_MEDIC', 'AI_EAT_pa', 'AI_DIS', 'AI_DIS_pa',
+        'AI_BS',
+        # 'AI_SYS', 'AI_DIA', 'AI_MEDIC', 'AI_EAT_pa', 'AI_DIS', 'AI_DIS_pa',
         # 'AI_Heart_age', 'AI_Depression', 'AI_Sqc', 'AI_BScut140',
         # 'AI_bshl', 'AI_bshl_pa', 'AI_dis', 'AI_dis_pa','AI_medic',
         'fatigue', 
         'HRV_SampEn', 'qtc_state', 
-        'eat_last_T', 'waistline', 'drink_w', 'low_bs', 'sport', 'sleep', 'family_sym',	'eat_last_T'
+        'eat_last_T', 'waistline', 'drink_w', 'low_bs', 'sport', 'sleep', 'family_sym',	'eat_last_T',
         'VLF/P','ULF/P',
-        'medicationstatus', 'CHA', 'dev_type', 'mood_state',
-        'md_num', 
-        'BPc_dia', 'BPc_sys', 'BSPS3',
+        # 'medicationstatus', 
+        'CHA', 'dev_type', 'mood_state', 'md_num', 
+        # 'BPc_dia', 'BPc_sys', 
+        'BSPS3',
         'R_height', 'T_height',
-        'ai_sec_bs', 'ai_sec_dia', 'ai_sec_sys', 'dis0bs1_0', 'dis0bs1_1', 'dis1bs1_0', 'dis1bs1_1', 'ecg_Arr', 'ecg_Arr%', 'ecg_PVC', 'ecg_PVC%',
+        'ai_sec_bs', 'ai_sec_dia', 'ai_sec_sys', 'dis0bs1_0', 'dis0bs1_1', 'dis1bs1_0', 'dis1bs1_1', 
+        # 'ecg_Arr', 'ecg_Arr%', 'ecg_PVC', 'ecg_PVC%',
         'ecg_QTc_state', 'ecg_Rbv', 'ecg_Tbv',
         'skin_touch', 'sym_score_shift066',	'sys', 't_error', 'unhrv',
-        'waybp1_0_dia', 'waybp1_0_sys', 'waybp1_1_dia', 'waybp1_1_sys', 'waybs1_0', 'waybs1_1', 'AI_EAT',
+        'waybp1_0_dia', 'waybp1_0_sys', 'waybp1_1_dia', 'waybp1_1_sys', 'waybs1_0', 'waybs1_1', 
+        'AI_EAT',
         'HRV_Cd', 'HRV_Cd.1', 'Unnamed: 0', 'phone_nm',
-        # , 'RRV_SDSD', 'DFA_1'
+        'RRV_SDSD', 'DFA_1',
         'AI_3d_meal', 'AI_3d_meal_pa', 'AI_P10_meal_2c', 'AI_P10_meal_2c_pa', 'AI_P15_meal_2c', 'AI_P15_meal_2c_pa', 'AI_P8_meal_2c', 'AI_P8_meal_2c_01pa'
     ]
 
@@ -57,8 +67,8 @@ def csv_file_preprocess(filename):
     df.info(memory_usage='deep')
     # df.dropna(axis=0, how='any', inplace=True)
 
-    # df = df[df.ne('no_data').all(axis=1)]
-    # df = df[df.ne('error').all(axis=1)]
+    df = df[df.ne('no_data').all(axis=1)]
+    df = df[df.ne('error').all(axis=1)]
     # df = df[df['sex'].apply(lambda x: isinstance(x, int))]
     # df = df[df['old'].apply(lambda x: isinstance(x, int))]
 
@@ -132,7 +142,7 @@ def check_nan_and_inf(df):
     print("Memory usage at start of check_nan_and_inf:")
     df.info(memory_usage='deep')
 
-    unnecessary_columns = ['filename', 'ecg_filename', 'AI_EAT', 'group', 'HRV_Cd', 'BSc', 'miny_local_total']
+    unnecessary_columns = ['filename', 'ecg_filename', 'AI_EAT', 'group', 'HRV_Cd', 'miny_local_total'] # , 'BSc'
     df.drop(columns=unnecessary_columns, inplace=True, errors='ignore')
     df.dropna(inplace=True)  # Remove rows with NaN values
 
@@ -306,6 +316,163 @@ def cluster_columns(scaled_df, raw_float_columns, directory='./AI_MD/', max_k=15
     cluster_df = pd.concat(cluster_data, axis=1)
     return cluster_df
 
+from sklearn.mixture import GaussianMixture
+def cluster_columns_gmm(scaled_df, raw_float_columns, directory='./AI_MD/', max_k=15):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    def silhouette_score_method(data, max_k=15):
+        silhouettes = []
+        for k in range(5, max_k + 1):
+            gmm = GaussianMixture(n_components=k, random_state=28)
+            gmm.fit(data.reshape(-1, 1))
+            labels = gmm.predict(data.reshape(-1, 1))
+            if len(np.unique(labels)) > 1:
+                silhouette = silhouette_score(data.reshape(-1, 1), labels)
+                silhouettes.append(silhouette)
+            else:
+                silhouettes.append(-1)
+        best_k = np.argmax(silhouettes) + 5
+        return best_k
+
+    cluster_data = []
+
+    for column_name in raw_float_columns:
+        best_k_silhouette = silhouette_score_method(scaled_df[column_name].values, max_k)
+        gmm = GaussianMixture(n_components=best_k_silhouette, random_state=28)
+        gmm.fit(scaled_df[column_name].values.reshape(-1, 1))
+        labels = gmm.predict(scaled_df[column_name].values.reshape(-1, 1))
+        gmm_filename = os.path.join(directory, f'{column_name}_cluster{best_k_silhouette}_gmm_model.joblib')
+        joblib.dump(gmm, gmm_filename)
+        cluster_data.append(pd.Series(labels, name=f"{column_name}_cluster{best_k_silhouette}_gmm"))
+
+    cluster_df = pd.concat(cluster_data, axis=1)
+    return cluster_df
+
+# def cluster_columns_hierarchical(scaled_df, raw_float_columns, directory='./AI_MD/', max_k=15):
+#     if not os.path.exists(directory):
+#         os.makedirs(directory)
+
+#     def silhouette_score_method(data, max_k=15):
+#         silhouettes = []
+#         for k in range(2, max_k + 1):
+#             hierarchical = AgglomerativeClustering(n_clusters=k)
+#             labels = hierarchical.fit_predict(data.reshape(-1, 1))
+#             if len(np.unique(labels)) > 1:
+#                 silhouette = silhouette_score(data.reshape(-1, 1), labels)
+#                 silhouettes.append(silhouette)
+#             else:
+#                 silhouettes.append(-1)
+#         best_k = np.argmax(silhouettes) + 2
+#         return best_k
+
+#     cluster_data = []
+
+#     for column_name in raw_float_columns:
+#         best_k_silhouette = silhouette_score_method(scaled_df[column_name].values, max_k)
+#         hierarchical = AgglomerativeClustering(n_clusters=best_k_silhouette)
+#         labels = hierarchical.fit_predict(scaled_df[column_name].values.reshape(-1, 1))
+#         hierarchical_filename = os.path.join(directory, f'{column_name}_cluster{best_k_silhouette}_hierarchical_model.joblib')
+#         joblib.dump(hierarchical, hierarchical_filename)
+#         cluster_data.append(pd.Series(labels, name=f"{column_name}_cluster{best_k_silhouette}_hierarchical"))
+
+#     cluster_df = pd.concat(cluster_data, axis=1)
+#     return cluster_df
+
+# from sklearn.cluster import SpectralClustering
+# def cluster_columns_spectral(scaled_df, raw_float_columns, directory='./AI_MD/', max_k=15):
+#     if not os.path.exists(directory):
+#         os.makedirs(directory)
+
+#     def silhouette_score_method(data, max_k=15):
+#         silhouettes = []
+#         for k in range(5, max_k + 1):
+#             spectral = SpectralClustering(n_clusters=k, affinity='nearest_neighbors', random_state=28)
+#             labels = spectral.fit_predict(data.reshape(-1, 1))
+#             if len(np.unique(labels)) > 1:
+#                 silhouette = silhouette_score(data.reshape(-1, 1), labels)
+#                 silhouettes.append(silhouette)
+#             else:
+#                 silhouettes.append(-1)
+#         best_k = np.argmax(silhouettes) + 5
+#         return best_k
+
+#     cluster_data = []
+
+#     for column_name in raw_float_columns:
+#         best_k_silhouette = silhouette_score_method(scaled_df[column_name].values, max_k)
+#         spectral = SpectralClustering(n_clusters=best_k_silhouette, affinity='nearest_neighbors', random_state=28)
+#         labels = spectral.fit_predict(scaled_df[column_name].values.reshape(-1, 1))
+#         spectral_filename = os.path.join(directory, f'{column_name}_cluster{best_k_silhouette}_spectral_model.joblib')
+#         joblib.dump(spectral, spectral_filename)
+#         cluster_data.append(pd.Series(labels, name=f"{column_name}_cluster{best_k_silhouette}_spectral"))
+
+#     cluster_df = pd.concat(cluster_data, axis=1)
+#     return cluster_df
+
+from sklearn.cluster import Birch
+def cluster_columns_birch(scaled_df, raw_float_columns, directory='./AI_MD/', max_k=15):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    def silhouette_score_method(data, max_k=15):
+        silhouettes = []
+        for k in range(2, max_k + 1):
+            birch = Birch(n_clusters=k)
+            labels = birch.fit_predict(data.reshape(-1, 1))
+            if len(np.unique(labels)) > 1:
+                silhouette = silhouette_score(data.reshape(-1, 1), labels)
+                silhouettes.append(silhouette)
+            else:
+                silhouettes.append(-1)
+        best_k = np.argmax(silhouettes) + 2
+        return best_k
+
+    cluster_data = []
+
+    for column_name in raw_float_columns:
+        best_k_silhouette = silhouette_score_method(scaled_df[column_name].values, max_k)
+        birch = Birch(n_clusters=best_k_silhouette)
+        labels = birch.fit_predict(scaled_df[column_name].values.reshape(-1, 1))
+        birch_filename = os.path.join(directory, f'{column_name}_cluster{best_k_silhouette}_birch_model.joblib')
+        joblib.dump(birch, birch_filename)
+        cluster_data.append(pd.Series(labels, name=f"{column_name}_cluster{best_k_silhouette}_birch"))
+
+    cluster_df = pd.concat(cluster_data, axis=1)
+    return cluster_df
+
+from sklearn.cluster import AgglomerativeClustering
+def cluster_columns_agglomerative(scaled_df, raw_float_columns, directory='./AI_MD/', max_k=15):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    def silhouette_score_method(data, max_k=15):
+        silhouettes = []
+        for k in range(2, max_k + 1):
+            agglomerative = AgglomerativeClustering(n_clusters=k)
+            labels = agglomerative.fit_predict(data.reshape(-1, 1))
+            if len(np.unique(labels)) > 1:
+                silhouette = silhouette_score(data.reshape(-1, 1), labels)
+                silhouettes.append(silhouette)
+            else:
+                silhouettes.append(-1)
+        best_k = np.argmax(silhouettes) + 2
+        return best_k
+
+    cluster_data = []
+
+    for column_name in raw_float_columns:
+        best_k_silhouette = silhouette_score_method(scaled_df[column_name].values, max_k)
+        agglomerative = AgglomerativeClustering(n_clusters=best_k_silhouette)
+        labels = agglomerative.fit_predict(scaled_df[column_name].values.reshape(-1, 1))
+        agglomerative_filename = os.path.join(directory, f'{column_name}_cluster{best_k_silhouette}_agglomerative_model.joblib')
+        joblib.dump(agglomerative, agglomerative_filename)
+        cluster_data.append(pd.Series(labels, name=f"{column_name}_cluster{best_k_silhouette}_agglomerative"))
+
+    cluster_df = pd.concat(cluster_data, axis=1)
+    return cluster_df
+
+
 def minmax_scaler(df, raw_float_columns, directory='./AI_MD/'):
     # 確認每個列名都在原始DataFrame中
     assert all(column in df.columns for column in raw_float_columns), "Some columns listed in 'raw_float_columns' are not in the dataframe."
@@ -371,6 +538,11 @@ def input_reg_csv_to_preprocess(csv_file_name):
     df_optbinned = continuous_binning(df, scaled_df, raw_float_columns, 'BS_mg_dl')
     cluster_df = cluster_columns(scaled_df, raw_float_columns) 
     minmax_log2_df = minmax_scaler(df, raw_float_columns)
+    cluster_gmm_df = cluster_columns_gmm(scaled_df, raw_float_columns)
+    # cluster_hierarchical_df = cluster_columns_hierarchical(scaled_df, raw_float_columns)
+    # cluster_spectral_df = cluster_columns_spectral(scaled_df, raw_float_columns)
+    cluster_birch_df = cluster_columns_birch(scaled_df, raw_float_columns)
+    # cluster_agglomerative_df = cluster_columns_agglomerative(scaled_df, raw_float_columns)
 
     # 重設索引
     df.reset_index(drop=True, inplace=True)
@@ -379,15 +551,48 @@ def input_reg_csv_to_preprocess(csv_file_name):
     df_optbinned.reset_index(drop=True, inplace=True)
     cluster_df.reset_index(drop=True, inplace=True)
     minmax_log2_df.reset_index(drop=True, inplace=True)
+    cluster_gmm_df.reset_index(drop=True, inplace=True)
+    # cluster_hierarchical_df.reset_index(drop=True, inplace=True)
+    # cluster_spectral_df.reset_index(drop=True, inplace=True)
+    cluster_birch_df.reset_index(drop=True, inplace=True)
+    # cluster_agglomerative_df.reset_index(drop=True, inplace=True)
 
     print('scaled_data:', scaled_df.shape)
     print('kbinned_data:', df_kbinned.shape)
     print('optbinned_data:', df_optbinned.shape)
     print('cluster_data:', cluster_df.shape)
     print('minmax_log2_data:', minmax_log2_df.shape)
+    print('cluster_gmm_data:', cluster_gmm_df.shape)
+    # print('cluster_hierarchical_data:', cluster_hierarchical_df.shape)
+    # print('cluster_spectral_data:', cluster_spectral_df.shape)
+    print('cluster_birch_data:', cluster_birch_df.shape)
+    # print('cluster_agglomerative_data:', cluster_agglomerative_df.shape)
 
     # 合併標準化後的原始資料+類別型特徵+連續型型特徵+分群特徵
-    df_processed = pd.concat([df, df_kbinned, df_optbinned, cluster_df, minmax_log2_df], axis=1)
+    df_processed = pd.concat([
+        df, 
+        df_kbinned, 
+        df_optbinned, 
+        cluster_df, 
+        minmax_log2_df, 
+        cluster_gmm_df,
+        # cluster_hierarchical_df,
+        # cluster_spectral_df,
+        cluster_birch_df,
+        # cluster_agglomerative_df
+    ], axis=1)
+
+    # 添加頻率編碼
+    frequency_encodings = {}
+    for col in raw_int_columns:
+        freq_series = df[col].value_counts(normalize=True)
+        frequency_encodings[col] = freq_series
+        df_processed[col + '_freq'] = df[col].map(freq_series)
+
+    # 儲存頻率映射字典
+    with open('./AI_MD/frequency_encodings.pkl', 'wb') as f:
+        pickle.dump(frequency_encodings, f)
+
     df_processed.to_csv('df_processed.csv', index=False)
     print(df_processed.shape)
 

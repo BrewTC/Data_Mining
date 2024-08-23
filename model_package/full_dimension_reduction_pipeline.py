@@ -102,7 +102,7 @@ def full_dimension_reduction_pipeline(df_processed, target_column, top_features,
         return best_n_kpca, best_n_pca, results_kpca, results_pca, results_combined
 
     def combine_features(n_components_kpca, n_components_pca, X, y):
-        linear_kpca_pipeline, df_linear_kpca, cum_explained_kpca = LinearKernelPCA(X, y, n_components_kpca)
+        linear_kpca_pipeline, df_linear_kpca, cum_explained_kpca = LinearKernelPCA(X, n_components_kpca)
         pca_pipeline, df_pca, cum_explained_pca = AutoPrincipalComponentsAnalysis(X, n_components_pca)
 
         # 选择 KPCA 前 n 项特征和 PCA 前 n 项特征
@@ -140,7 +140,7 @@ def full_dimension_reduction_pipeline(df_processed, target_column, top_features,
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
 
     # Perform KPCA and PCA
-    linear_kpca_pipeline, df_linear_kpca, cum_explained_kpca = LinearKernelPCA(X_train, y_train, n_components_kpca)
+    linear_kpca_pipeline, df_linear_kpca, cum_explained_kpca = LinearKernelPCA(X_train, n_components_kpca)
     pca_pipeline, df_pca, cum_explained_pca = AutoPrincipalComponentsAnalysis(X_train, n_components_pca)
 
     # Combine the features
