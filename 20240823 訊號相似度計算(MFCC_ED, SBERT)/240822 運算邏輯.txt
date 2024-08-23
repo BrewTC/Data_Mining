@@ -1,0 +1,25 @@
+
+1. ECG訊號切割、降頻率
+
+拿到ECG訊號檔案後，取6~24秒(18秒)訊號
+將取樣率由1000降低至500
+儲存新的CSV檔案
+保留原始'filename'以及'0'-'4999'的訊號值
+
+2. 篩選diabetes為0和2的訊號(第一次做的時候其實沒有分...0123都有...)
+
+保留diabetes==0, 2
+mealstatus==1,2,3,4的資料
+儲存新的CSV檔案
+保留原始'filename'以及'0'-'4999'的訊號值
+
+3. 計算MFCC與SBERT特徵值 
+
+最後得到兩個df:
+- SBERT_median_similarity
+- euclidean_distance_med
+
+4. 將3.的兩個特徵加回原始df當中，開始進行族群篩選
+
+依照diabetes0, 2
+mealstatus1, 2, 3, 4
